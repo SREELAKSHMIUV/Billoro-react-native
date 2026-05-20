@@ -90,18 +90,25 @@ export default function Footer({
 
 const styles = StyleSheet.create({
   footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 78,
-    backgroundColor: "white",
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-  },
+  flexDirection: "row",
+  justifyContent: "space-around",
+  alignItems: "center",
+
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  right: 0,
+
+  height: 82,
+
+  backgroundColor: "white",
+
+  borderTopWidth: 1,
+  borderTopColor: "#E5E7EB",
+
+  paddingBottom: 12,
+  paddingTop: 10,
+},
 
   footerItem: {
     alignItems: "center",

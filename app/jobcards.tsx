@@ -19,6 +19,7 @@ export default function JobCardsScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={{ flex: 1 }}>
         <ScrollView
+          bounces={false}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.container}
         >
