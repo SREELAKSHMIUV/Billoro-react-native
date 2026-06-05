@@ -99,15 +99,15 @@ const styles = StyleSheet.create({
   left: 0,
   right: 0,
 
-  height: 82,
+  height: 70,
 
   backgroundColor: "white",
 
   borderTopWidth: 1,
   borderTopColor: "#E5E7EB",
 
-  paddingBottom: 12,
-  paddingTop: 10,
+  paddingBottom: 6,
+  paddingTop: 6,
 },
 
   footerItem: {

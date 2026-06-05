@@ -1,5 +1,8 @@
-import React from "react";
-
+import React, {
+  useEffect,
+  useState,
+} from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -7,15 +10,136 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  Alert,
 } from "react-native";
+
+import { router } from "expo-router";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Ionicons } from "@expo/vector-icons";
-
+import {
+  getInvoices,
+  deleteInvoice,
+} from "../services/invoiceApi";
 import Footer from "../components/Footer";
 
 export default function InvoiceScreen() {
+  const [invoices, setInvoices] =
+  useState<any[]>([]);
+
+    const [loading, setLoading] =
+      useState(true);
+
+    const [search, setSearch] =
+      useState("");
+    const loadInvoices = async () => {
+
+      try {
+
+        setLoading(true);
+
+        const response =
+          await getInvoices(
+            1,
+            50,
+            search
+          );
+
+        console.log(
+          "INVOICE LIST:",
+          JSON.stringify(
+            response,
+            null,
+            2
+          )
+        );
+
+        setInvoices(response.items || []);
+
+      } catch (error) {
+
+        console.log(
+          "LIST INVOICE ERROR:",
+          error
+        );
+
+      } finally {
+
+        setLoading(false);
+
+      }
+    };
+    const handleDeleteInvoice =
+  async (invoiceId: string) => {
+
+    try {
+
+      const response =
+        await deleteInvoice(
+          invoiceId
+        );
+        await loadInvoices();
+      console.log(
+        "DELETE RESPONSE:",
+        JSON.stringify(
+          response,
+          null,
+          2
+        )
+      );
+
+      Alert.alert(
+        "Success",
+        "Invoice deleted successfully"
+      );
+
+      loadInvoices();
+
+    } catch (error: any) {
+
+      console.log(
+        "DELETE ERROR:",
+        JSON.stringify(
+          error?.response?.data ||
+            error,
+          null,
+          2
+        )
+      );
+
+      Alert.alert(
+        "Error",
+        "Failed to delete invoice"
+      );
+
+    }
+};
+    useEffect(() => {loadInvoices();}, []);
+    useFocusEffect(
+      React.useCallback(() => {
+
+      console.log(
+        "Invoice screen focused"
+      );
+
+      loadInvoices();
+
+    }, [])
+);
+    useEffect(() => {
+
+      const timer =
+        setTimeout(() => {
+
+          loadInvoices();
+
+        }, 500);
+
+      return () =>
+        clearTimeout(timer);
+
+    }, [search]);
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={{ flex: 1 }}>
@@ -32,11 +156,17 @@ export default function InvoiceScreen() {
               </Text>
 
               <Text style={styles.subHeading}>
-                6 invoices
+                {invoices.length} invoices
               </Text>
             </View>
 
-            <TouchableOpacity style={styles.newButton}>
+            {/* NEW BUTTON */}
+            <TouchableOpacity
+              style={styles.newButton}
+              onPress={() =>
+                router.push("/invoice-create" as any)
+              }
+            >
               <Ionicons
                 name="add"
                 size={18}
@@ -63,6 +193,8 @@ export default function InvoiceScreen() {
               placeholder="Search invoice or customer"
               placeholderTextColor="#6B7280"
               style={styles.searchInput}
+              value={search}
+              onChangeText={setSearch}
             />
           </View>
 
@@ -121,120 +253,171 @@ export default function InvoiceScreen() {
           </View>
 
           {/* INVOICE LIST */}
-          {[
+              {invoices.map((item, index) => (
+
+  <View
+    key={item.id || index}
+    style={styles.invoiceCard}
+  >
+
+    <View style={styles.invoiceTop}>
+
+      <View style={styles.avatar}>
+
+        <Text style={styles.avatarText}>
+          {
+            item.invoice_number
+              ?.substring(0, 2)
+              ?.toUpperCase() || "IN"
+          }
+        </Text>
+
+      </View>
+
+      <View style={{ flex: 1 }}>
+
+        <Text style={styles.customerName}>
+          {item.customer_phone}
+        </Text>
+
+        <Text style={styles.invoiceDetails}>
+          {item.invoice_number}
+        </Text>
+
+        <Text style={styles.invoiceTime}>
+          {item.invoice_date}
+        </Text>
+
+      </View>
+
+      <View style={{ alignItems: "flex-end" }}>
+
+        <Text style={styles.invoiceAmount}>
+          ₹{item.total_amount}
+        </Text>
+
+        <View style={styles.paidBadge}>
+
+          <View style={styles.greenDot} />
+
+          <Text
+            style={[
+              styles.paidText,
+              {
+                color:
+                  item.status === "voided"
+                    ? "#DC2626"
+                    : "#16A34A",
+              },
+            ]}
+          >
             {
-              initials: "RS",
-              name: "Rahul Sharma",
-              amount: "₹1,798",
-            },
+              item.status === "voided"
+                ? "DELETED"
+                : item.status.toUpperCase()
+            }
+          </Text>
+        </View>
 
+      </View>
+
+    </View>
+
+    <View style={styles.cardDivider} />
+
+    <View style={styles.actionRow}>
+
+      <TouchableOpacity
+        style={styles.actionButton}
+      >
+        <Ionicons
+          name="eye-outline"
+          size={18}
+          color="#111827"
+        />
+
+        <Text style={styles.actionText}>
+          View
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.actionButton}
+      >
+        <Ionicons
+          name="share-social-outline"
+          size={18}
+          color="#111827"
+        />
+
+        <Text style={styles.actionText}>
+          Share
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+  style={styles.actionButton}
+  disabled={
+    item.status === "voided"
+  }
+  onPress={() => {
+
+    Alert.alert(
+      "Delete Invoice",
+      "Are you sure you want to delete this invoice?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+
+        {
+          text: "Delete",
+          style: "destructive",
+
+          onPress: () =>
+            handleDeleteInvoice(
+              item.id
+            ),
+        },
+      ]
+    );
+
+  }}
+>
+        <Ionicons
+          name="trash-outline"
+          size={18}
+          color={
+            item.status === "voided"
+              ? "#9CA3AF"
+              : "red"
+          }
+        />
+
+        <Text
+          style={[
+            styles.actionText,
             {
-              initials: "PP",
-              name: "Priya Patel",
-              amount: "₹499",
+              color:
+                item.status === "voided"
+                  ? "#9CA3AF"
+                  : "red",
             },
+          ]}
+        >
+          {item.status === "voided"
+            ? "Deleted"
+            : "Delete"}
+        </Text>
 
-            {
-              initials: "AM",
-              name: "Arjun Mehta",
-              amount: "₹2,999",
-            },
-          ].map((item, index) => (
-            <View
-              key={index}
-              style={styles.invoiceCard}
-            >
-              {/* TOP */}
-              <View style={styles.invoiceTop}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {item.initials}
-                  </Text>
-                </View>
+      </TouchableOpacity>
 
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.customerName}>
-                    {item.name}
-                  </Text>
+    </View>
 
-                  <Text style={styles.invoiceDetails}>
-                    INV-2041 · MH 12 AB 1234
-                  </Text>
+  </View>
 
-                  <Text style={styles.invoiceTime}>
-                    Today, 14:32
-                  </Text>
-                </View>
-
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.invoiceAmount}>
-                    {item.amount}
-                  </Text>
-
-                  <View style={styles.paidBadge}>
-                    <View style={styles.greenDot} />
-
-                    <Text style={styles.paidText}>
-                      Paid
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* DIVIDER */}
-              <View style={styles.cardDivider} />
-
-              {/* ACTIONS */}
-              <View style={styles.actionRow}>
-                <TouchableOpacity
-                  style={styles.actionButton}
-                >
-                  <Ionicons
-                    name="eye-outline"
-                    size={18}
-                    color="#111827"
-                  />
-
-                  <Text style={styles.actionText}>
-                    View
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionButton}
-                >
-                  <Ionicons
-                    name="share-social-outline"
-                    size={18}
-                    color="#111827"
-                  />
-
-                  <Text style={styles.actionText}>
-                    Share
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionButton}
-                >
-                  <Ionicons
-                    name="trash-outline"
-                    size={18}
-                    color="red"
-                  />
-
-                  <Text
-                    style={[
-                      styles.actionText,
-                      { color: "red" },
-                    ]}
-                  >
-                    Delete
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
+))}
 
           <View style={{ height: 110 }} />
         </ScrollView>
@@ -279,7 +462,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#146C43",
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
+    justifyContent: "center",
+    paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 24,
   },
@@ -287,8 +471,8 @@ const styles = StyleSheet.create({
   newButtonText: {
     color: "white",
     fontWeight: "600",
-    marginLeft: 4,
-    fontSize: 13,
+    marginLeft: 6,
+    fontSize: 14,
   },
 
   divider: {

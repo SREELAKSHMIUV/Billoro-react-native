@@ -11,9 +11,69 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { loginUser } from "../services/authApi";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 export default function LoginScreen() {
+
   const [passwordVisible, setPasswordVisible] =
     useState(false);
+
+  const [identifier, setIdentifier] =
+    useState("");
+
+  const [password, setPassword] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [errorMessage, setErrorMessage] =
+    useState("");
+
+  const handleLogin = async () => {
+
+    try {
+
+      setLoading(true);
+
+      setErrorMessage("");
+
+      const response =
+  await loginUser(
+    identifier,
+    password
+  );
+
+console.log(
+  "LOGIN RESPONSE:",
+  response
+);
+
+await AsyncStorage.setItem(
+  "token",
+  response.access_token
+);
+
+console.log(
+  "TOKEN SAVED:",
+  response.access_token
+);
+
+router.push("/home");
+
+    } catch (error: any) {
+
+      console.log(error);
+
+      setErrorMessage(
+        "Incorrect email or password"
+      );
+
+    } finally {
+
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -21,6 +81,7 @@ export default function LoginScreen() {
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
+
         {/* Logo */}
         <View style={styles.logoRow}>
           <View style={styles.logoCircle}>
@@ -32,16 +93,35 @@ export default function LoginScreen() {
 
         {/* Heading */}
         <View style={styles.headingContainer}>
-          <Text style={styles.heading}>Welcome back</Text>
+          <Text style={styles.heading}>
+            Welcome back
+          </Text>
 
           <Text style={styles.subHeading}>
             Sign in to your shop dashboard.
           </Text>
         </View>
 
+        {/* Error Box */}
+        {errorMessage ? (
+          <View style={styles.errorBox}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={20}
+              color="#FFFFFF"
+            />
+
+            <Text style={styles.errorText}>
+              {errorMessage}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Email */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>
+            Email
+          </Text>
 
           <View style={styles.inputContainer}>
             <Ionicons
@@ -54,13 +134,18 @@ export default function LoginScreen() {
               placeholder="owner@billoro.app"
               placeholderTextColor="#6B7280"
               style={styles.input}
+              value={identifier}
+              onChangeText={setIdentifier}
+              autoCapitalize="none"
             />
           </View>
         </View>
 
         {/* Password */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>
+            Password
+          </Text>
 
           <View style={styles.inputContainer}>
             <Ionicons
@@ -74,11 +159,19 @@ export default function LoginScreen() {
               placeholderTextColor="#6B7280"
               secureTextEntry={!passwordVisible}
               style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="password"
+              passwordRules="minlength: 1;"
             />
 
             <TouchableOpacity
               onPress={() =>
-                setPasswordVisible(!passwordVisible)
+                setPasswordVisible(
+                  !passwordVisible
+                )
               }
             >
               <Ionicons
@@ -95,15 +188,29 @@ export default function LoginScreen() {
         </View>
 
         {/* Forgot Password */}
-        <TouchableOpacity>
+        <TouchableOpacity
+          onPress={() =>
+            router.push(
+              "/forgot-password"
+            )
+          }
+        >
           <Text style={styles.forgotText}>
             Forgot password?
           </Text>
         </TouchableOpacity>
 
         {/* Sign In Button */}
-        <TouchableOpacity style={styles.signInButton} onPress={() => router.push("/home")}>
-          <Text style={styles.signInText}>Sign in</Text>
+        <TouchableOpacity
+          style={styles.signInButton}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <Text style={styles.signInText}>
+            {loading
+              ? "Signing in..."
+              : "Sign in"}
+          </Text>
         </TouchableOpacity>
 
         {/* Bottom */}
@@ -118,12 +225,14 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+
   safeArea: {
     flex: 1,
     backgroundColor: "#F7F7F5",
@@ -178,6 +287,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#6B7280",
     lineHeight: 24,
+  },
+
+  errorBox: {
+    backgroundColor: "#DC2626",
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+
+  errorText: {
+    color: "white",
+    fontSize: 14,
+    marginLeft: 10,
+    fontWeight: "600",
   },
 
   inputSection: {
